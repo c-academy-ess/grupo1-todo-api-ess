@@ -1,0 +1,28 @@
+@startuml Partilha de Listas - User A (Dono)
+
+title Dono (User A) partilha lista com User B
+
+actor "Dono (User A)" as Owner
+
+participant "Controller" as C
+participant "Service" as S
+participant "Repository" as R
+database "PostgreSQL" as DB
+
+Owner -> C : POST /todolist/1/share\n{"userId": 2}
+C -> S : getTodoList(1)
+S -> R : findById(1)
+R -> DB : SELECT * FROM lists WHERE id=1
+DB --> R : {id=1, name="Shopping", owner_id=1}
+R --> S : TodoList
+S --> C : TodoList(ownerId=1)
+C -> C : verificar ownerId == userId
+C -> S : shareList(1, 2)
+S -> R : save(listId=1, userId=2)
+R -> DB : INSERT INTO list_shares\n(list_id, user_id) VALUES (1, 2)
+DB --> R : OK
+R --> S : OK
+S --> C : OK
+C --> Owner : 201 Created
+
+@enduml

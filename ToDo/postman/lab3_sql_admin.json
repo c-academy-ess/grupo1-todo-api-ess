@@ -1,0 +1,157 @@
+{
+  "info": {
+    "_postman_id": "b9cb6780-b841-4cd7-9593-8c2ea3f4142d",
+    "name": "C-Academy ESS - Todo Lists",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Login user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login successful\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var token = pm.response.text();",
+                  "    pm.collectionVariables.set(\"userToken\", token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"penca\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "192.168.254.130:7100/login",
+              "host": ["192.168.254.130"],
+              "port": "7100",
+              "path": ["login"]
+            }
+          }
+        },
+		{
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"User created or exists\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+			  {
+                "key": "Authorization",
+                "value": "{{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"vaginha\",\n    \"password\": \"penca\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "192.168.254.130:7100/user",
+              "host": ["192.168.254.130"],
+              "port": "7100",
+              "path": ["user"]
+            }
+          }
+        }		
+      ]
+    },
+    {
+      "name": "Create a new list",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"List created successfully\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{userToken}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"listName\":\"My CI/CD demo ESS list\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "192.168.254.130:7100/todolist",
+          "host": ["192.168.254.130"],
+          "port": "7100",
+          "path": ["todolist"]
+        }
+      }
+    },
+    {
+      "name": "Get All Lists",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Response is an array\", function () {",
+              "    pm.expect(pm.response.json()).to.be.an('array');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{userToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "192.168.254.130:7100/todolist",
+          "host": ["192.168.254.130"],
+          "port": "7100",
+          "path": ["todolist"]
+        }
+      }
+    }
+  ],
+  "variable": [{ "key": "userToken", "value": "" }]
+}

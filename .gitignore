@@ -1,0 +1,80 @@
+# ========================
+# Maven Build Output
+# ========================
+ToDo/target/
+!ToDo/target/.gitkeep
+
+# Compiled classes
+*.class
+
+# JAR/WAR/EAR
+*.jar
+*.war
+*.ear
+*.nar
+
+# ========================
+# IntelliJ IDEA
+# ========================
+ToDo/.idea/workspace.xml
+ToDo/.idea/tasks.xml
+ToDo/.idea/usage.statistics.xml
+ToDo/.idea/dictionaries/
+ToDo/.idea/shelf/
+ToDo/.idea/httpRequests/
+ToDo/.idea/dataSources/
+ToDo/.idea/dataSources.local.xml
+ToDo/.idea/sqlDataSources.xml
+ToDo/.idea/dynamic.classpath
+ToDo/.idea/.name
+
+# Manter ficheiros úteis para a equipa:
+# .idea/compiler.xml, encodings.xml, misc.xml, vcs.xml → partilhados ✓
+
+# ========================
+# Segurança — Ficheiros sensíveis
+# ========================
+# Keystores e certificados privados
+*.jks
+*.p12
+*.pfx
+*.pem
+# Exceção: manter o .crt público (não contém chave privada)
+!*.crt
+
+# Ficheiros de variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# ========================
+# Logs
+# ========================
+*.log
+logs/
+
+# ========================
+# Sistema Operativo
+# ========================
+# Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# ========================
+# Eclipse / VSCode (outros editores)
+# ========================
+.project
+.classpath
+.settings/
+.vscode/
+*.swp
+*.swo

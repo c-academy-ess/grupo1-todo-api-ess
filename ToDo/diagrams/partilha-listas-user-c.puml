@@ -1,0 +1,26 @@
+@startuml Partilha de Listas - User C (Nao Autorizado)
+
+title Utilizador Nao Autorizado (User C) tenta ver tarefas
+
+actor "Utilizador Nao Autorizado (User C)" as Denied
+
+participant "Controller" as C
+participant "Service" as S
+participant "Repository" as R
+database "PostgreSQL" as DB
+
+Denied -> C : GET /todo/1/tasks
+C -> S : getTodoList(1)
+S -> R : findById(1)
+R -> DB : SELECT * FROM lists WHERE id=1
+DB --> R : {id=1, owner_id=1}
+R --> S : TodoList(ownerId=1)
+S --> C : TodoList(ownerId=1)
+C -> C : ownerId(1) != userId(3)\nverificar partilha...
+C -> R : isShared(listId=1, userId=3)
+R -> DB : SELECT * FROM list_shares\nWHERE list_id=1 AND user_id=3
+DB --> R : nao existe
+R --> C : false
+C --> Denied : 403 Forbidden\n"User not owner of list"
+
+@enduml
