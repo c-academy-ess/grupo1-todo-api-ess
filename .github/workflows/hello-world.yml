@@ -1,0 +1,15 @@
+name: Hello world
+on:
+    workflow_dispatch:
+jobs:
+    # the name of the job
+    hello-world-job:
+        # The type of runner that the job will run on
+        runs-on: ubuntu-latest
+        # Sequence of tasks that will be executed as part of the job
+        steps:
+            # Checks-out the repository
+            - uses: actions/checkout@v3
+            # Runs a single command using the runner shell
+            - name: Run a one-line script
+              run: echo Hello, world!
