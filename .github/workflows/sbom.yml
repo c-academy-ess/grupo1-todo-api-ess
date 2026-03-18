@@ -1,0 +1,117 @@
+name: SBOM
+on:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  sbom-app:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # SBOM (Maven / CycloneDX) + Sign
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Generate SBOM (Application)
+        run: mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.8.0:makeAggregateBom
+        working-directory: ToDo
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign SBOM Application
+        run: |
+          cosign sign-blob \
+            --yes \
+            ToDo/target/bom.json \
+            --output-signature sbom-application.sig \
+            --output-certificate sbom-application.crt
+
+      - name: Upload SBOM Application (+sig +crt)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-application
+          path: |
+            ToDo/target/bom.json
+            sbom-application.sig
+            sbom-application.crt
+
+  sbom-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      # Build for AMD64 (to generate SBOM)
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ToDo
+          file: ./ToDo/Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          push: false
+          load: true
+
+      - name: Generate SBOM (Docker image)
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: cyclonedx
+          output: sbom-image.cdx.json
+
+      - name: Sign SBOM Docker Image
+        run: |
+          cosign sign-blob \
+            --yes \
+            sbom-image.cdx.json \
+            --output-signature sbom-image.sig \
+            --output-certificate sbom-image.crt
+
+      - name: Upload SBOM Image (+sig +crt)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-image
+          path: |
+            sbom-image.cdx.json
+            sbom-image.sig
+            sbom-image.crt
