@@ -1,0 +1,102 @@
+name: CI/CD security
+on:
+  workflow_dispatch:
+
+env:
+  # Use docker.io for Docker Hub
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+      packages: write
+
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      # Run unit tests
+      - name: Build e testes (JUnit)
+        run: mvn clean test
+        working-directory: ToDo
+
+      # CodeQL - SAST
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java
+
+      - name: Build for CodeQL Analysis
+        run: mvn clean compile
+        working-directory: ToDo
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+
+      # Trivy
+      - name: Complete scan with Trivy
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: "fs"
+          scanners: "vuln,secret,config"
+          severity: "CRITICAL,HIGH"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          cache: "true"
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Upload artifact to pipeline metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: Generate artifact with Trivy result
+          path: trivy-results.sarif
+
+      # Login in a Docker registry
+      # https://github.com/docker/login-action
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Setup QEMU for multi-arch emulation
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Setup Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      # Push multi-arch (AMD64 + ARM64)
+      - name: Push Docker image (multi-arch)
+        uses: docker/build-push-action@v5
+        with:
+          context: ToDo
+          file: ./ToDo/Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          push: true
