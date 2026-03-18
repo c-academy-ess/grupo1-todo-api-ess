@@ -25,8 +25,11 @@ import org.apache.commons.dbcp2.BasicDataSource;
 
 import org.casbin.jcasbin.main.Enforcer;
 
+import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
@@ -55,8 +58,8 @@ public class App {
         // Initialize repositories based on REPO_MODE environment variable
         //REPO_MODE=memory -> InMemory repositories (no database needed)
         // REPO_MODE=sql (or unset) -> SQL repositories (PostgreSQL)
-        String repoMode = "sql";
-        //String repoMode = "memory";
+        //String repoMode = "sql";
+        String repoMode = "memory";
 
         UserRepository userRepository;
         TodoListsRepository listsRepository;
@@ -98,11 +101,17 @@ public class App {
         TodoController todoController = new TodoController(todoService, toDoListService);
 
         // Initialize Casbin RBAC enforcer
-        URL modelUrl = App.class.getClassLoader().getResource("model.conf");
-        URL policyUrl = App.class.getClassLoader().getResource("policy.csv");
-        String modelPath = Paths.get(modelUrl.toURI()).toString();
-        String policyPath = Paths.get(policyUrl.toURI()).toString();
-        Enforcer enforcer = new Enforcer(modelPath, policyPath);
+        // Copy classpath resources to temp files (required when running from a fat JAR)
+        Path modelTemp = Files.createTempFile("model", ".conf");
+        Path policyTemp = Files.createTempFile("policy", ".csv");
+        modelTemp.toFile().deleteOnExit();
+        policyTemp.toFile().deleteOnExit();
+        try (InputStream ms = App.class.getClassLoader().getResourceAsStream("model.conf");
+             InputStream ps = App.class.getClassLoader().getResourceAsStream("policy.csv")) {
+            Files.copy(ms, modelTemp, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(ps, policyTemp, StandardCopyOption.REPLACE_EXISTING);
+        }
+        Enforcer enforcer = new Enforcer(modelTemp.toString(), policyTemp.toString());
 
         AuthorizationMiddleware authMiddleware = new AuthorizationMiddleware(hmacSecret, enforcer);
 
