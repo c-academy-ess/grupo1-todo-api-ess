@@ -73,6 +73,7 @@ jobs:
       contents: read
       packages: write
       security-events: write
+      id-token: write
 
     steps:
       - name: Code checkout
@@ -137,3 +138,14 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           push: true
+
+      # Sign image with Cosign
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign all image tags
+        run: |
+          echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n' | while read tag; do
+            echo "Signing $tag ..."
+            cosign sign --yes "$tag"
+          done
